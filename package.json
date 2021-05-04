@@ -1,0 +1,19 @@
+{
+  "name": "dispatcher",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-ws": "^4.0.0",
+    "got": "^11.8.2",
+    "log4js": "^6.3.0",
+    "pidusage": "^2.0.21"
+  }
+}
