@@ -26,7 +26,7 @@ export default class script extends emt {
 
     //日志中心
     log(level, ...info) {
-        this.processOut(this.fileName, level, ...info);
+        this.processOut(this, level, ...info);
         this.logger[level](...info);
     }
 
@@ -43,13 +43,14 @@ export default class script extends emt {
         c.on("message", this.dispatcher.bind(this));
         c.on("close", () => {
             this.clearMonitor();
-            this.log("info", (`ID:[${c.pid}]-已关闭`))
+            this.log("mark", (`pid:[${c.pid}]-已关闭`));
+            this.emit("close");
             this.started = false;
         })
     }
 
     stop() {
-        this.log("info", (`ID:[${this.child_process.pid}][${this.fileName}]-停止中`));
+        this.log("info", (`pid:[${this.child_process.pid}][${this.fileName}]-停止中`));
         this.started = false;
         return this.child_process.kill();
     }
@@ -63,7 +64,7 @@ export default class script extends emt {
         }
         else if (type === "system") {
             if (msg === "start") {
-                this.log("info", (`ID:[${this.child_process.pid}]-开始运行`));
+                this.log("mark", (`pid:[${this.child_process.pid}]-开始运行`));
                 this.started = true;
                 this.monitor();
             }
@@ -76,14 +77,17 @@ export default class script extends emt {
     monitor() {
         this.monitor_id = setInterval(async () => {
             if (this.started) {
-                let res = await pidusage(this.child_process.pid);
-                res.memory = (res.memory / 1024 / 1024).toFixed(2);
-                res.cpu = (res.cpu).toFixed(2);
-                this.log("debug", (`当前进程状态:\n[cpu:${res.cpu}%]\n[memory:${(res.memory)}MB]`));
-                if ((this.cpu && res.cpu >= this.cpu) || (this.memory && res.memory >= this.memory)) {
-                    this.log("warn", (`ID:[${this.child_process.pid}]超出资源限制，自动关闭！`));
-                    this.stop();
+                try {
+                    let res = await pidusage(this.child_process.pid);
+                    res.memory = (res.memory / 1024 / 1024).toFixed(2);
+                    res.cpu = (res.cpu).toFixed(2);
+                    this.log("debug", (`当前进程状态:[cpu:${res.cpu}%]-[memory:${(res.memory)}MB]`));
+                    if ((this.cpu && res.cpu >= this.cpu) || (this.memory && res.memory >= this.memory)) {
+                        this.log("warn", (`ID:[${this.child_process.pid}]超出资源限制，自动关闭！`));
+                        this.stop();
+                    }
                 }
+                catch (e) {}
             }
             else {
                 clearInterval(this.monitor_id);

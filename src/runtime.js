@@ -7,21 +7,20 @@ export function send(type, msg) {
         type, msg
     })
 }
-function init() {
-    process.on("exit", function () {
-        send("system", "exit")
-    })
-}
 if (scriptUrl) {
     const _module = await import(scriptUrl);
     if (!_module.default) {
         throw Error("请确定你声明了运行函数");
     }
-    init();
     send("system", "start");
     const start = _module.default;
     if (typeof start === "function") {
-        await start();
+        try {
+            await start();
+        }
+        catch (e) {
+            throw e;
+        }
     }
     else {
         throw Error("export default must a function");

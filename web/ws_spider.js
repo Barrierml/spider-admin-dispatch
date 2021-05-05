@@ -1,7 +1,21 @@
 import script from "../src/index.js"
 import { fileNameFullList } from "../src/uitl.js"
 import emt from "events";
+import { spidersModel, getLogModel } from "./model.js"
+import _ from "lodash";
+const { find } = _;
 
+async function reLoad(list, cb) {
+    await spidersModel.sync();
+    for (let e of list) {
+        [e.spiderModel] = await spidersModel.findOrCreate({
+            where: { fileName: e.fileName },
+        })
+        e.logModel = getLogModel(e.fileName);
+        await e.logModel.sync();
+    };
+    cb && cb();
+}
 
 
 
@@ -18,49 +32,92 @@ class scriptDispatcher extends emt {
                 logger: this.logDispatch.bind(this),
             })
         });
+        reLoad(this.mission, this.inited.bind(this));
+    }
+
+    inited() {
+        console.log("数据库初始化完毕");
+        //绑定关闭事件
+        const self = this;
+        this.mission.forEach((e) => {
+            e.on("close", function () {
+                self.send({
+                    type: "spider_close",
+                    name: this.fileName,
+                })
+            })
+            e.on("start", function () {
+                self.send({
+                    type: "spider_open",
+                    name: this.fileName,
+                })
+            })
+        })
     }
 
     getSpider() {
         return this.mission.map((e) => {
             return {
-                name: e.fileName,
+                name: e.spiderModel.name || e.fileName,
                 status: e.started ? "运行中" : "已停止",
+                rate: e.spiderModel.schedule,
+                last_run: e.spiderModel.last_run,
             }
         })
     }
+
+
+    stopSpider(name){
+        const s = find(this.mission, { fileName: name });
+        if(!s) return false;
+        s.stop();
+        return true;
+    }
+
 
     openSpider(name) {
         return new Promise((resolve) => {
-            for (let i = 0; i < this.mission.length; i++) {
-                const s = this.mission[i];
-                if (s.fileName === name) {
-                    if (!script.started) {
-                        s.once("start", () => {
-                            resolve(true);
-                        })
-                        s.start()
-                    }
-                    else {
-                        resolve(false)
-                    }
-                }
+            const s = find(this.mission, { fileName: name });
+            if (!s) {
+                resolve(false);
+                return;
             }
-        })
+            if (!s.started) {
+                //更新启动时间并开始启动
+                s.spiderModel.last_run = new Date().toISOString();
+                s.once("start", () => { resolve(true); })
+                s.once("error", () => { resolve(false); })
+                s.start()
+            }
+            else {
+                resolve(false);
+            }
+        }).catch(() => { });
     }
 
+
     //deal all log from child_process to web
-    logDispatch(name, level, data) {
+    async logDispatch(instance, level, data) {
+        //保存到数据库中
+        const time = new Date();
         this.send({
             type: "add_log",
-            name,
+            name: instance.fileName,
             level,
-            data,
+            data: `[${time.toLocaleString()}] [${level}] - ${data}`,
         })
+        await instance.logModel.create({ level, data, time });
     }
 
     //send script log to web
-    getLog() {
-        return [];
+    async getLog(name) {
+        let res = find(this.mission, { fileName: name })
+        if (!res) return [];
+        const logs = res.logModel;
+        const list = await logs.findAll();
+        return list.map((e) => {
+            return { level: e.level, data: `[${e.time.toLocaleString()}] [${e.level}] - ${e.data}` };
+        })
     }
 
     send(res) {
@@ -117,6 +174,8 @@ async function applyGet(msg, parma) {
             return dd.getSpider();
         case "open_spider":
             return await dd.openSpider(parma);
+        case "stop_spider":
+            return dd.stopSpider(parma);
         case "log":
             return await dd.getLog(parma);
         default:
