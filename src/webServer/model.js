@@ -3,7 +3,7 @@ const { DataTypes } = Sequelize;
 const sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: 'spider.sqlite',
-    logging:false,
+    logging: false,
 })
 
 const spidersModel = sequelize.define("spiders", {
@@ -11,6 +11,8 @@ const spidersModel = sequelize.define("spiders", {
     fileName: DataTypes.STRING,
     scheduler: DataTypes.STRING,
     last_run: DataTypes.DATE,
+    cpu: DataTypes.FLOAT(2, 2),
+    memory: DataTypes.INTEGER,
 })
 
 

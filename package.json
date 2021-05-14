@@ -5,6 +5,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
+    "start": "node ./src/webServer/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -16,6 +17,8 @@
     "got": "^11.8.2",
     "lodash": "^4.17.21",
     "log4js": "^6.3.0",
+    "moment": "^2.29.1",
+    "node-schedule": "^2.0.0",
     "pidusage": "^2.0.21",
     "postcss": "^7.0.35",
     "sequelize": "^6.6.2",
