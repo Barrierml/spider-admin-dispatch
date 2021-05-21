@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <meta name="referrer" content="never">
+</head>
+
+<body>
+    <div style="height: 100vh;">
+        <iframe id="outP" allowfullscreen style="width: 100%;height: 100%;"
+            src="https://jsap.attakids.com/?url=https://v.youku.com/v_show/id_XNTI4Njc3Njgw.html"
+            frameborder="0"></iframe>
+    </div>
+</body>
+
+<script>
+    let ww = document.getElementById("outP").contentWindow;
+    ww.Function = (e) => { console.log(e) };
+</script>
+
+</html>
